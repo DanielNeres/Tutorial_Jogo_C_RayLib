@@ -1,7 +1,7 @@
 #include <raylib.h>
 #include <math.h>
 
-// kleber
+
 void movimento_nave(float *pos_x, float *pos_y, float vel, float *angulo, float vel_angulo){
 
     if (IsKeyDown(KEY_RIGHT)){
