@@ -76,13 +76,11 @@ int main(){
         Vector2 origem_movendo = {destinno_nave_movendo.width/2, destinno_nave_movendo.height/2};
 
         if (pos_x_nave != pos_x_nave_atual || pos_y_nave != pos_y_nave_atual){
-            movendo = true;
             imagem_atual = nave_movendo;
             recorte_atual = recorte_nave_movendo;
             destino_atual = destinno_nave_movendo;
             origem_atual = origem_movendo;
         } else {
-            movendo = false;
             imagem_atual = nave;
             recorte_atual = recorte_nave;
             destino_atual = destino_nave_parada;
