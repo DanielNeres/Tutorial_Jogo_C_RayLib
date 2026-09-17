@@ -2,8 +2,20 @@
 #include <math.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <time.h>
 
 #define MAX_BALAS 50
+#define MAX_AST 5
+
+typedef struct{
+    float pos_x;
+    float pos_y;
+    float dir_pos_x;
+    float dir_pos_y;
+    float angulo;
+    int vidas;
+    bool ativo;
+} Meteoro;
 
 
 void movimento_nave(float *pos_x, float *pos_y, float vel, float *angulo, float vel_angulo){
@@ -29,7 +41,9 @@ void movimento_nave(float *pos_x, float *pos_y, float vel, float *angulo, float 
 }
 
 int main(){
-    InitWindow(1500, 1000, "primeira aula");
+    srand((unsigned int)time(NULL));
+    InitWindow(2500, 1500, "primeira aula");
+
 
     bool erro = false;
 
@@ -50,6 +64,12 @@ int main(){
         erro = true;
     }
     Rectangle recorte_projetil = {0, 0, spr_bala.width, spr_bala.height};
+
+    Texture2D spr_meteoro = LoadTexture("assets/spr_asteroide_grande.png");
+    if (!IsTextureValid(spr_meteoro)){
+        erro = true;
+    }
+    Rectangle recorte_meteoro = {0, 0, spr_meteoro.width, spr_meteoro.height};
 
     float pos_x_nave = 750, pos_y_nave = 500;
     float velocidade_nave = 5;
@@ -80,6 +100,22 @@ int main(){
     float vel_bala = 7;
     int tamanho_matriz = 50;
 
+    // alocando os meteoros
+
+    Meteoro meteoros[MAX_AST];
+    for (int i = 0; i < MAX_AST; i++){
+        meteoros[i].angulo = 0;
+        meteoros[i].pos_x = 1000;
+        meteoros[i].pos_y = 1000;
+        meteoros[i].dir_pos_x = -1 + 2*(rand()/RAND_MAX);
+        meteoros[i].dir_pos_y = -1 + 2*(rand()/RAND_MAX);
+        meteoros[i].ativo = true;
+        meteoros[i].vidas = 3;
+    }
+    float vel_meteoros = 3;
+    float vel_rot_meteoros = 5;
+    
+
     SetTargetFPS(60);
 
     while (!WindowShouldClose()){
@@ -104,15 +140,16 @@ int main(){
         pos_x_nave_atual = pos_x_nave; pos_y_nave_atual = pos_y_nave; 
         movimento_nave(&pos_x_nave, &pos_y_nave, velocidade_nave, &angulo, vel_angulo_nave);
 
-        if (IsKeyDown(KEY_P)){
+        if (IsKeyPressed(KEY_P)){
             matriz_balas[bala_id][0] = pos_x_nave;
             matriz_balas[bala_id][1] = pos_y_nave;
             matriz_balas[bala_id][2] = angulo;
             bala_id++;
-            if (bala_id >= MAX_BALAS){
+            if (bala_id >= tamanho_matriz){
                 tamanho_matriz += 50;
-                realloc(matriz_balas, tamanho_matriz*sizeof(float *));
-                if (matriz_balas != NULL){        
+                float **temp = realloc(matriz_balas, tamanho_matriz * sizeof(float *));
+                if (temp != NULL){
+                    matriz_balas = temp;        
                     for (int i = tamanho_matriz - 50; i < tamanho_matriz; i++){
                         matriz_balas[i] = calloc(3, sizeof(float));
                     }
@@ -124,6 +161,14 @@ int main(){
             
         }
         
+        for (int i = 0; i < MAX_AST; i++){
+            meteoros[i].pos_x += meteoros[i].dir_pos_x*vel_meteoros;
+            meteoros[i].pos_y += meteoros[i].dir_pos_y*vel_meteoros;
+            meteoros[i].angulo += vel_rot_meteoros;
+            if (meteoros[i].angulo >= 360){
+                meteoros[i].angulo = 0;
+            }
+        }   
 
         Rectangle destino_nave_parada = {pos_x_nave, pos_y_nave, 5*recorte_nave.width, 5*recorte_nave.height};
         Vector2 origem_parada = {destino_nave_parada.width/2, destino_nave_parada.height/2};
@@ -145,7 +190,7 @@ int main(){
         
         BeginDrawing();
 
-            ClearBackground(WHITE);
+            ClearBackground((Color){0, 0, 40, 255});
 
             for (int i = 0; i < bala_id; i++){
 
@@ -157,6 +202,12 @@ int main(){
                 Vector2 origem_projetil = {destino_projetil.width/2, destino_projetil.height/2};
 
                 DrawTexturePro(spr_bala, recorte_projetil, destino_projetil, origem_projetil, matriz_balas[i][2], WHITE);
+            }
+
+            for (int i = 0; i < MAX_AST; i++){
+                Rectangle destino_meteoro = {meteoros[i].pos_x, meteoros[i].pos_y, spr_meteoro.width*5, spr_meteoro.height*5};
+                Vector2 origem_meteoro = {destino_meteoro.width/2, destino_meteoro.height/2};
+                DrawTexturePro(spr_meteoro, recorte_meteoro, destino_meteoro, origem_meteoro, meteoros[i].angulo, WHITE);
             }
             
             DrawTexturePro(imagem_atual, recorte_atual, destino_atual, origem_atual, angulo, WHITE);
