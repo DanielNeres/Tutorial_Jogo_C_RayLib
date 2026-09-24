@@ -6,9 +6,12 @@
 
 #define MAX_BALAS 50
 #define MAX_AST 5
+#define TELA_LARGURA 2500
+#define TELA_ALTURA 1500
 
 typedef struct{
     float pos_x;
+
     float pos_y;
     float dir_pos_x;
     float dir_pos_y;
@@ -17,6 +20,19 @@ typedef struct{
     bool ativo;
 } Meteoro;
 
+
+void manter_na_tela(float *pos_x, float *pos_y){
+    if (*pos_x >= TELA_LARGURA){
+        *pos_x = 0;
+    } else if (*pos_x <= 0){
+        *pos_x = TELA_LARGURA;
+    }
+    if (*pos_y >= TELA_ALTURA){
+        *pos_y = 0;
+    } else if (*pos_y <= 0){
+        *pos_y = TELA_ALTURA;
+    }
+}
 
 void movimento_nave(float *pos_x, float *pos_y, float vel, float *angulo, float vel_angulo){
     if (IsKeyDown(KEY_RIGHT)){
@@ -38,12 +54,12 @@ void movimento_nave(float *pos_x, float *pos_y, float vel, float *angulo, float 
         *pos_x += cosf(angulo_rad)*vel;
         *pos_y += sinf(angulo_rad)*vel;
     }
+    manter_na_tela(pos_x, pos_y);
 }
 
 int main(){
     srand((unsigned int)time(NULL));
-    InitWindow(2500, 1500, "primeira aula");
-
+    InitWindow(TELA_LARGURA, TELA_ALTURA, "primeira aula");
 
     bool erro = false;
 
@@ -107,13 +123,13 @@ int main(){
         meteoros[i].angulo = 0;
         meteoros[i].pos_x = 1000;
         meteoros[i].pos_y = 1000;
-        meteoros[i].dir_pos_x = -1 + 2*(rand()/RAND_MAX);
-        meteoros[i].dir_pos_y = -1 + 2*(rand()/RAND_MAX);
+        meteoros[i].dir_pos_x = -1 + 2*((float)rand()/RAND_MAX); // 0 ou 1
+        meteoros[i].dir_pos_y = -1 + 2*((float)rand()/RAND_MAX);
         meteoros[i].ativo = true;
         meteoros[i].vidas = 3;
     }
     float vel_meteoros = 3;
-    float vel_rot_meteoros = 5;
+    float vel_rot_meteoros = 1.5;
     
 
     SetTargetFPS(60);
@@ -156,14 +172,13 @@ int main(){
                 } else{
                     erro = true;
                 }
-
             }
-            
         }
         
         for (int i = 0; i < MAX_AST; i++){
             meteoros[i].pos_x += meteoros[i].dir_pos_x*vel_meteoros;
             meteoros[i].pos_y += meteoros[i].dir_pos_y*vel_meteoros;
+            manter_na_tela(&meteoros[i].pos_x, &meteoros[i].pos_y);
             meteoros[i].angulo += vel_rot_meteoros;
             if (meteoros[i].angulo >= 360){
                 meteoros[i].angulo = 0;
