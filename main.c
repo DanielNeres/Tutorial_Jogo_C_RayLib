@@ -2,20 +2,25 @@
 #include <math.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <time.h>
 
 #define MAX_BALAS 50
 #define MAX_AST 5
 #define TELA_LARGURA 2500
 #define TELA_ALTURA 1500
+#define RAIO_NAVE 33
+#define RAIO_BALA 8
+#define RAIO_ASTEROID_GRANDE 55
 
 typedef struct{
     float pos_x;
-
     float pos_y;
     float dir_pos_x;
     float dir_pos_y;
     float angulo;
+    float vel_angulo;
+    float vel;
     int vidas;
     bool ativo;
 } Meteoro;
@@ -127,16 +132,22 @@ int main(){
         meteoros[i].dir_pos_y = -1 + 2*((float)rand()/RAND_MAX);
         meteoros[i].ativo = true;
         meteoros[i].vidas = 3;
+        meteoros[i].vel = 4 + 3*((float)rand()/RAND_MAX);
+        meteoros[i].vel_angulo = 6 + 6*((float)rand()/RAND_MAX)*(-2 + 4*(rand()/RAND_MAX));
     }
-    float vel_meteoros = 3;
-    float vel_rot_meteoros = 1.5;
-    
 
+    int pontuacao = 0;
+
+    FILE *Arquivo_Leitura = fopen("save.dat", "rb");
+    if (Arquivo_Leitura != NULL){
+        fread(&pontuacao, sizeof(int), 1, Arquivo_Leitura);
+    }
+    
     SetTargetFPS(60);
 
     while (!WindowShouldClose()){
 
-        if (erro){
+        if (erro || IsKeyPressed(KEY_H)){
             break;
         }
         
@@ -174,16 +185,39 @@ int main(){
                 }
             }
         }
+
+        
         
         for (int i = 0; i < MAX_AST; i++){
-            meteoros[i].pos_x += meteoros[i].dir_pos_x*vel_meteoros;
-            meteoros[i].pos_y += meteoros[i].dir_pos_y*vel_meteoros;
+            if (!meteoros[i].ativo){
+                continue;
+            }
+            meteoros[i].pos_x += meteoros[i].dir_pos_x*meteoros[i].vel;
+            meteoros[i].pos_y += meteoros[i].dir_pos_y*meteoros[i].vel;
             manter_na_tela(&meteoros[i].pos_x, &meteoros[i].pos_y);
-            meteoros[i].angulo += vel_rot_meteoros;
+            meteoros[i].angulo += meteoros[i].vel_angulo;
             if (meteoros[i].angulo >= 360){
                 meteoros[i].angulo = 0;
             }
         }   
+
+        for (int i = 0; i < MAX_AST; i++){
+            if (!meteoros[i].ativo){
+               continue;
+            }
+            
+            for (int j = 0; j < bala_id; j++){
+                if (CheckCollisionCircles((Vector2){meteoros[i].pos_x, meteoros[i].pos_y}, RAIO_ASTEROID_GRANDE, (Vector2){matriz_balas[j][0], matriz_balas[j][1]}, RAIO_BALA)){
+                    meteoros[i].vidas -= 1;
+                    matriz_balas[j][0] += -10000;
+                    matriz_balas[j][1] += -10000;
+                };
+                if (meteoros[i].vidas <= 0){
+                    pontuacao += 10;
+                    meteoros[i].ativo = false;
+                }
+            }
+        }
 
         Rectangle destino_nave_parada = {pos_x_nave, pos_y_nave, 5*recorte_nave.width, 5*recorte_nave.height};
         Vector2 origem_parada = {destino_nave_parada.width/2, destino_nave_parada.height/2};
@@ -220,19 +254,28 @@ int main(){
             }
 
             for (int i = 0; i < MAX_AST; i++){
+                if (!meteoros[i].ativo){
+                    continue;
+                }
+                
                 Rectangle destino_meteoro = {meteoros[i].pos_x, meteoros[i].pos_y, spr_meteoro.width*5, spr_meteoro.height*5};
                 Vector2 origem_meteoro = {destino_meteoro.width/2, destino_meteoro.height/2};
                 DrawTexturePro(spr_meteoro, recorte_meteoro, destino_meteoro, origem_meteoro, meteoros[i].angulo, WHITE);
             }
             
             DrawTexturePro(imagem_atual, recorte_atual, destino_atual, origem_atual, angulo, WHITE);
-            
-            
+            DrawText(TextFormat("pontuação: %d", pontuacao), 30, 30, 35, WHITE);
 
         EndDrawing();
     }
+
+    FILE *Arquivo_Escrita = fopen("save.dat", "w");
+    fwrite(&pontuacao, sizeof(int), 1, Arquivo_Escrita);
+
     UnloadTexture(spr_nave);
     UnloadTexture(spr_nave_movendo);
+    UnloadTexture(spr_meteoro);
+    UnloadTexture(spr_bala);
     CloseWindow();
     for (int i = 0; i < tamanho_matriz; i++){
         free(matriz_balas[i]);
