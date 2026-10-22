@@ -7,7 +7,7 @@
 #include <string.h>
 
 #define MAX_BALAS 50
-#define MAX_AST 5
+#define MAX_AST 3
 #define TELA_LARGURA 2500
 #define TELA_ALTURA 1500
 #define RAIO_NAVE 33
@@ -74,14 +74,24 @@ void movimento_nave(float *pos_x, float *pos_y, float vel, float *angulo, float 
 void alocar_meteoros(Meteoro meteoros[MAX_AST]){
     for (int i = 0; i < MAX_AST; i++){
         meteoros[i].angulo = 0;
-        meteoros[i].pos_x = 1000;
-        meteoros[i].pos_y = 1000;
+        meteoros[i].pos_x = 0;
+        meteoros[i].pos_y = 0;
         meteoros[i].dir_pos_x = -1.0f + 2.0f * ((float)rand() / RAND_MAX);
         meteoros[i].dir_pos_y = -1.0f + 2.0f * ((float)rand() / RAND_MAX);
         meteoros[i].ativo = true;
         meteoros[i].vidas = 3;
-        meteoros[i].vel = 4.0f + 3.0f * ((float)rand() / RAND_MAX);
-        meteoros[i].vel_angulo = 6.0f + 6.0f * ((float)rand() / RAND_MAX) * (-2.0f + 4.0f * ((float)rand() / RAND_MAX));
+        meteoros[i].vel = 2.0f + 1.5f * ((float)rand() / RAND_MAX);
+        meteoros[i].vel_angulo = -2.0f + 4.0f * ((float)rand() / RAND_MAX);
+
+        if (meteoros[i].dir_pos_x == 0){
+            meteoros[i].dir_pos_x = 0.1f;
+        }
+        if (meteoros[i].dir_pos_y == 0){
+            meteoros[i].dir_pos_y = 0.1f;
+        }
+        if (meteoros[i].vel_angulo == 0){
+            meteoros[i].vel_angulo = 0.1f;
+        }
     }
 }
 
@@ -149,7 +159,7 @@ for (int i = 0; i < bala_id; i++){
         matriz_balas[i][0] += cosf(angulo_rad)*vel_bala;
         matriz_balas[i][1] += sinf(angulo_rad)*vel_bala;
 
-        Rectangle destino_projetil = {matriz_balas[i][0], matriz_balas[i][1], spr_bala.width*5, spr_bala.height*5};
+        Rectangle destino_projetil = {matriz_balas[i][0], matriz_balas[i][1], spr_bala.width*2.5, spr_bala.height*2.5};
         Vector2 origem_projetil = {destino_projetil.width/2, destino_projetil.height/2};
 
         DrawTexturePro(spr_bala, recorte_projetil, destino_projetil, origem_projetil, matriz_balas[i][2], WHITE);
@@ -162,7 +172,7 @@ void desenhar_meteoros(Meteoro meteoros[MAX_AST], Texture2D spr_meteoro, Rectang
             continue;
         }
         
-        Rectangle destino_meteoro = {meteoros[i].pos_x, meteoros[i].pos_y, spr_meteoro.width*5, spr_meteoro.height*5};
+        Rectangle destino_meteoro = {meteoros[i].pos_x, meteoros[i].pos_y, spr_meteoro.width*3.7, spr_meteoro.height*3.7};
         Vector2 origem_meteoro = {destino_meteoro.width/2, destino_meteoro.height/2};
         DrawTexturePro(spr_meteoro, recorte_meteoro, destino_meteoro, origem_meteoro, meteoros[i].angulo, WHITE);
     }
@@ -171,14 +181,143 @@ void desenhar_meteoros(Meteoro meteoros[MAX_AST], Texture2D spr_meteoro, Rectang
 void desenhar_estrelas(Texture2D spr_estrela_grande, Texture2D spr_estrela_pequena,Vector2 estrelas_grandes[MAX_ESTRELAS_GRANDES], Vector2 estrelas_pequenas[MAX_ESTRELAS_PEQUENAS], Rectangle recorte_estrela_grande, Rectangle recorte_estrela_pequena){
     for (int i = 0; i < MAX_ESTRELAS_GRANDES; i++){
         
-        Rectangle destino_estrela_grande = {estrelas_grandes[i].x, estrelas_grandes[i].y, spr_estrela_grande.width*3.5, spr_estrela_grande.height*3.5};
+        Rectangle destino_estrela_grande = {estrelas_grandes[i].x, estrelas_grandes[i].y, spr_estrela_grande.width*2, spr_estrela_grande.height*2};
         DrawTexturePro(spr_estrela_grande, recorte_estrela_grande, destino_estrela_grande, (Vector2){0,0}, 0, WHITE);
     }
     for (int i = 0; i < MAX_ESTRELAS_PEQUENAS; i++){
         
-        Rectangle destino_estrela_pequena = {estrelas_pequenas[i].x, estrelas_pequenas[i].y, spr_estrela_pequena.width*3.5, spr_estrela_pequena.height*3.5};
+        Rectangle destino_estrela_pequena = {estrelas_pequenas[i].x, estrelas_pequenas[i].y, spr_estrela_pequena.width*2, spr_estrela_pequena.height*2};
         DrawTexturePro(spr_estrela_pequena, recorte_estrela_pequena, destino_estrela_pequena, (Vector2){0,0}, 0, WHITE);
     }
+}
+
+void Insertion_Short_pontuacao(Jogador *jogadores, int qtd){
+
+    for (int i = 1; i < qtd; ++i) {
+        Jogador key = jogadores[i];
+        int j = i - 1;
+
+        while (j >= 0 && jogadores[j].pontuacao > key.pontuacao) {
+            jogadores[j + 1] = jogadores[j];
+            j = j - 1;
+        }
+        jogadores[j + 1] = key;
+    }
+}
+
+void Insertion_Short_nome(Jogador *jogadores, int qtd){
+    for (int i = 1; i < qtd; i++){
+        Jogador atual = jogadores[i];
+        int j = i - 1;
+
+        while (j >= 0 && strcmp(jogadores[j].nome, atual.nome) > 0){
+            jogadores[j + 1] = jogadores[j];
+            j--;
+        }
+        jogadores[j + 1] = atual;
+    }
+}
+
+int buscar_jogador(Jogador *jogadores, int qtd, const char *nome){
+    int inicio = 0;
+    int fim = qtd - 1;
+
+    while (inicio <= fim){
+        int meio = inicio + (fim - inicio)/2;
+        int comparacao = strcmp(nome, jogadores[meio].nome);
+
+        if (comparacao == 0){
+            return meio;
+        } else if (comparacao < 0){
+            fim = meio - 1;
+        } else{
+            inicio = meio + 1;
+        }
+    }
+    return -1;
+}
+
+Jogador *carregar_jogadores(int *qtd, bool *erro){
+    *qtd = 0;
+    Jogador *jogadores = malloc(sizeof(Jogador));
+    if (jogadores == NULL){
+        *erro = true;
+        return NULL;
+    }
+
+    FILE *arquivo = fopen("save.dat", "rb");
+    if (arquivo != NULL){
+        fread(qtd, sizeof(int), 1, arquivo);
+        jogadores = realloc(jogadores, (*qtd + 1) * sizeof(Jogador));
+        if (jogadores == NULL){
+            fclose(arquivo);
+            *erro = true;
+            return NULL;
+        }
+        fread(jogadores, sizeof(Jogador), *qtd, arquivo);
+        fclose(arquivo);
+    }
+
+    Insertion_Short_nome(jogadores, *qtd);
+    return jogadores;
+}
+
+bool tela_inicial(Jogador *jogador, Jogador *historico, int qtd, bool *mostrar_ranking){
+    int tamanho_nome = strlen(jogador->nome);
+    int tecla = GetCharPressed();
+    while (tecla > 0){
+        if (tecla >= 32 && tecla <= 126 &&
+            tamanho_nome < (int)sizeof(jogador->nome) - 1){
+            jogador->nome[tamanho_nome++] = (char)tecla;
+            jogador->nome[tamanho_nome] = '\0';
+        }
+        tecla = GetCharPressed();
+    }
+    if (IsKeyPressed(KEY_BACKSPACE) && tamanho_nome > 0){
+        jogador->nome[--tamanho_nome] = '\0';
+    }
+    if (IsKeyPressed(KEY_TAB)){
+        *mostrar_ranking = !*mostrar_ranking;
+    }
+
+    bool nome_valido = strspn(jogador->nome, " ") < strlen(jogador->nome);
+    bool iniciar = IsKeyPressed(KEY_ENTER) && nome_valido;
+
+    BeginDrawing();
+        ClearBackground(BLACK);
+        int x = TELA_LARGURA/2 - 600;
+        DrawText("ASTEROIDS", x, 150, 80, WHITE);
+        DrawText("Digite seu nome (ate 39 caracteres):", x, 270, 36, WHITE);
+        DrawRectangle(x, 330, 1200, 80, (Color){20, 25, 45, 255});
+        DrawText(jogador->nome, x + 20, 350, 36, WHITE);
+
+        DrawText("ENTER: jogar | TAB: ranking | BACKSPACE: apagar", x, 510, 32, WHITE);
+        if (*mostrar_ranking){
+            Insertion_Short_pontuacao(historico, qtd);
+            DrawText("RANKING - 10 maiores pontuacoes", x, 660, 36, SKYBLUE);
+            for (int i = 0; i < 10 && i < qtd; i++){
+                int posicao = qtd - 1 - i;
+                DrawText(TextFormat("%d. %s - %d", i + 1, historico[posicao].nome, historico[posicao].pontuacao), x, 730 + i*50, 30, WHITE);
+            }
+            Insertion_Short_nome(historico, qtd);
+        }
+    EndDrawing();
+    return iniciar;
+}
+
+bool salvar_jogadores(Jogador *jogadores, int qtd){
+    FILE *arquivo = fopen("save.dat", "wb");
+    if (arquivo == NULL){
+        return false;
+    }
+    bool salvo = fwrite(&qtd, sizeof(int), 1, arquivo) == 1;
+    if (salvo){
+        salvo = fwrite(jogadores, sizeof(Jogador), qtd, arquivo) == (size_t)qtd;
+    }
+    if (fclose(arquivo) != 0){
+        salvo = false;
+    }
+    return salvo;
 }
 
 int main(){
@@ -234,9 +373,9 @@ int main(){
         estrelas_pequenas[i].y = ((float)rand() / (float)RAND_MAX) * TELA_ALTURA;
     }
 
-    float pos_x_nave = 750, pos_y_nave = 500;
-    float velocidade_nave = 5;
-    float vel_angulo_nave = 5;
+    float pos_x_nave = 1250, pos_y_nave = 750;
+    float velocidade_nave = 3.7;
+    float vel_angulo_nave = 2.3;
     float angulo = 0;
     Texture2D imagem_atual = spr_nave;
     Rectangle recorte_atual = recorte_nave;
@@ -260,7 +399,7 @@ int main(){
     }
 
     int bala_id = 0;
-    float vel_bala = 7;
+    float vel_bala = 8;
     int tamanho_matriz = 50;
 
     // alocando os meteoros
@@ -268,17 +407,22 @@ int main(){
     Meteoro meteoros[MAX_AST];
     alocar_meteoros(meteoros);
 
-    Jogador jogador_n1;
-    strcpy(jogador_n1.nome, "nome");
+    Jogador jogador_n1 = {0};
+    int quantidade_jogadores = 0;
+    bool erro_save = false;
+    Jogador *historico_jogadores = carregar_jogadores(&quantidade_jogadores, &erro_save);
+    bool jogo_iniciado = false;
+    bool mostrar_ranking = false;
+    erro = erro || erro_save;
 
-    FILE *Arquivo_Leitura = fopen("save.dat", "rb");
-    if (Arquivo_Leitura != NULL){
-        fread(&jogador_n1.pontuacao, sizeof(int), 1, Arquivo_Leitura);
-    }
-    
     SetTargetFPS(60);
 
     while (!WindowShouldClose()){
+
+        if (!jogo_iniciado && !erro){
+            jogo_iniciado = tela_inicial(&jogador_n1, historico_jogadores, quantidade_jogadores, &mostrar_ranking);
+            continue;
+        }
 
         if (erro || IsKeyPressed(KEY_H)){
             break;
@@ -304,10 +448,10 @@ int main(){
         movimento_meteoro(meteoros);
         colisao_meteoro_bala(matriz_balas, meteoros, &jogador_n1.pontuacao, bala_id);
 
-        Rectangle destino_nave_parada = {pos_x_nave, pos_y_nave, 5*recorte_nave.width, 5*recorte_nave.height};
+        Rectangle destino_nave_parada = {pos_x_nave, pos_y_nave, 3.7*recorte_nave.width, 3.7*recorte_nave.height};
         Vector2 origem_parada = {destino_nave_parada.width/2, destino_nave_parada.height/2};
 
-        Rectangle destinno_nave_movendo = {pos_x_nave, pos_y_nave, 5*recorte_nave_movendo.width, 5*recorte_nave_movendo.height};
+        Rectangle destinno_nave_movendo = {pos_x_nave, pos_y_nave, 3.7*recorte_nave_movendo.width, 3.7*recorte_nave_movendo.height};
         Vector2 origem_movendo = {(destinno_nave_movendo.width + (destinno_nave_movendo.width - destino_nave_parada.width))/2, destinno_nave_movendo.height/2};
 
         if (pos_x_nave != pos_x_nave_atual || pos_y_nave != pos_y_nave_atual){
@@ -324,19 +468,34 @@ int main(){
         
         BeginDrawing();
 
-            ClearBackground((Color){0, 0, 40, 255});            
+            ClearBackground((Color){2, 2, 12, 255});            
             desenhar_estrelas(spr_estrela_grande, spr_estrela_pequena, estrelas_grandes, estrelas_pequenas, recorte_estrela_grande, recorte_estrela_pequena);
             desenhar_balas(matriz_balas, bala_id, spr_bala, recorte_projetil, vel_bala);
             desenhar_meteoros(meteoros, spr_meteoro, recorte_meteoro);
             
             DrawTexturePro(imagem_atual, recorte_atual, destino_atual, origem_atual, angulo, WHITE);
-            DrawText(TextFormat("pontuação: %d", jogador_n1.pontuacao), 30, 30, 35, WHITE);
+            DrawText(TextFormat("%s", jogador_n1.nome), 30, 30, 35, WHITE);
+            DrawText(TextFormat("pontuação: %d", jogador_n1.pontuacao), 30, 65, 35, WHITE);
+            
 
         EndDrawing();
     }
 
-    FILE *Arquivo_Escrita = fopen("save.dat", "w");
-    fwrite(&jogador_n1.pontuacao, sizeof(int), 1, Arquivo_Escrita);
+    if (jogo_iniciado && !erro_save){
+        int indice = buscar_jogador(historico_jogadores, quantidade_jogadores, jogador_n1.nome);
+        if (indice < 0){
+            indice = quantidade_jogadores++;
+        } else if (jogador_n1.pontuacao > historico_jogadores[indice].pontuacao){
+            historico_jogadores[indice] = jogador_n1;
+        }
+        
+        historico_jogadores[indice] = jogador_n1;
+        Insertion_Short_pontuacao(historico_jogadores, quantidade_jogadores);
+        if (!salvar_jogadores(historico_jogadores, quantidade_jogadores)){
+            fprintf(stderr, "Nao foi possivel salvar os jogadores.\n");
+        }
+    }
+    free(historico_jogadores);
 
     UnloadTexture(spr_nave);
     UnloadTexture(spr_nave_movendo);
