@@ -17,10 +17,8 @@
 #define MAX_ESTRELAS_PEQUENAS 950
 
 typedef struct{
-    float pos_x;
-    float pos_y;
-    float dir_pos_x;
-    float dir_pos_y;
+    Vector2 pos;
+    Vector2 dir;
     float angulo;
     float vel_angulo;
     float vel;
@@ -33,7 +31,43 @@ typedef struct {
     char nome[40];
 }Jogador;
 
+typedef struct{
+    Vector2 pos;
+    float angulo;
+} Projetil;
 
+typedef struct no_lista_meteoro{
+    Meteoro data;
+    struct no_lista_meteoro *prox_no;
+} No_meteoro;
+
+typedef struct no_lista_projetil{
+    Projetil data;
+    struct no_lista_projetil *prox_no;
+}No_projetil;
+
+
+No_projetil *adicionar_no_prjetil(Projetil data, No_projetil *primeiro_no){
+    No_projetil *novo_no = malloc(sizeof(No_projetil));
+    if (novo_no == NULL){
+        printf("erro\n\n");
+        return primeiro_no;
+    }
+    novo_no->data = data;
+    novo_no->prox_no = primeiro_no;
+    return novo_no;    
+}
+
+No_meteoro *adicionar_no_meteoro(Meteoro data, No_meteoro *primeiro_no){
+    No_meteoro *novo_no = malloc(sizeof(No_meteoro));
+    if (novo_no == NULL){
+        printf("erro\n\n");
+        return primeiro_no;
+    }
+    novo_no->data = data;
+    novo_no->prox_no = primeiro_no;
+    return novo_no;    
+}
 
 void manter_na_tela(float *pos_x, float *pos_y){
     if (*pos_x >= TELA_LARGURA){
@@ -71,110 +105,107 @@ void movimento_nave(float *pos_x, float *pos_y, float vel, float *angulo, float 
     manter_na_tela(pos_x, pos_y);
 }
 
-void alocar_meteoros(Meteoro meteoros[MAX_AST]){
+No_meteoro *alocar_meteoros(No_meteoro *lista){
     for (int i = 0; i < MAX_AST; i++){
-        meteoros[i].angulo = 0;
-        meteoros[i].pos_x = 0;
-        meteoros[i].pos_y = 0;
-        meteoros[i].dir_pos_x = -1.0f + 2.0f * ((float)rand() / RAND_MAX);
-        meteoros[i].dir_pos_y = -1.0f + 2.0f * ((float)rand() / RAND_MAX);
-        meteoros[i].ativo = true;
-        meteoros[i].vidas = 3;
-        meteoros[i].vel = 2.0f + 1.5f * ((float)rand() / RAND_MAX);
-        meteoros[i].vel_angulo = -2.0f + 4.0f * ((float)rand() / RAND_MAX);
+        Meteoro dado_novo_no;
+        dado_novo_no.angulo = 0;
+        dado_novo_no.pos.x = 0;
+        dado_novo_no.pos.y = 0;
+        dado_novo_no.dir.x = -1.0f + 2.0f * ((float)rand() / RAND_MAX);
+        dado_novo_no.dir.y = -1.0f + 2.0f * ((float)rand() / RAND_MAX);
+        dado_novo_no.ativo = true;
+        dado_novo_no.vidas = 3;
+        dado_novo_no.vel = 2.0f + 1.5f * ((float)rand() / RAND_MAX);
+        dado_novo_no.vel_angulo = -2.0f + 4.0f * ((float)rand() / RAND_MAX);
 
-        if (meteoros[i].dir_pos_x == 0){
-            meteoros[i].dir_pos_x = 0.1f;
+        if (dado_novo_no.dir.x == 0){
+            dado_novo_no.dir.x = 0.1f;
         }
-        if (meteoros[i].dir_pos_y == 0){
-            meteoros[i].dir_pos_y = 0.1f;
+        if (dado_novo_no.dir.y == 0){
+            dado_novo_no.dir.y = 0.1f;
         }
-        if (meteoros[i].vel_angulo == 0){
-            meteoros[i].vel_angulo = 0.1f;
+        if (dado_novo_no.vel_angulo == 0){
+            dado_novo_no.vel_angulo = 0.1f;
         }
+        lista = adicionar_no_meteoro(dado_novo_no, lista);
     }
+    return lista;
 }
 
-void atirar(float ***matriz_balas, int *bala_id, float pos_x_nave, float pos_y_nave, float angulo, int *tamanho_matriz, bool *erro) {
+No_projetil *atirar(No_projetil *lista, float pos_x_nave, float pos_y_nave, float angulo, bool *erro) {
     if (IsKeyPressed(KEY_P)) {
-        (*matriz_balas)[*bala_id][0] = pos_x_nave;
-        (*matriz_balas)[*bala_id][1] = pos_y_nave;
-        (*matriz_balas)[*bala_id][2] = angulo;
+       Projetil data_novo_no;
+       data_novo_no.pos.x = pos_x_nave;
+       data_novo_no.pos.y = pos_y_nave;
+       data_novo_no.angulo = angulo;
+       return adicionar_no_prjetil(data_novo_no, lista);
+    }
+    return lista;
+}
+
+void movimento_meteoro(No_meteoro *lista){
+
+    No_meteoro *aux = lista;
+    while (aux != NULL){
         
-        (*bala_id)++;
+        aux->data.pos.x += aux->data.dir.x*aux->data.vel;
+        aux->data.pos.y += aux->data.dir.y*aux->data.vel;
+        manter_na_tela(&aux->data.pos.x, &aux->data.pos.y);
+        aux->data.angulo += aux->data.vel_angulo;
         
-        if (*bala_id >= *tamanho_matriz) {
-            *tamanho_matriz += 50;
-            float **temp = realloc(*matriz_balas, (*tamanho_matriz) * sizeof(float *));
-            if (temp != NULL) {
-                *matriz_balas = temp;
-                for (int i = *tamanho_matriz - 50; i < *tamanho_matriz; i++) {
-                    (*matriz_balas)[i] = calloc(3, sizeof(float));
-                }
-            } else {
-                *erro = true;
-            }
-        }
+        aux = aux->prox_no;
     }
 }
 
-void movimento_meteoro(Meteoro meteoros[MAX_AST]){
-    for (int i = 0; i < MAX_AST; i++){
-        if (!meteoros[i].ativo){
-            continue;
-        }
-        meteoros[i].pos_x += meteoros[i].dir_pos_x*meteoros[i].vel;
-        meteoros[i].pos_y += meteoros[i].dir_pos_y*meteoros[i].vel;
-        manter_na_tela(&meteoros[i].pos_x, &meteoros[i].pos_y);
-        meteoros[i].angulo += meteoros[i].vel_angulo;
-        if (meteoros[i].angulo >= 360){
-            meteoros[i].angulo = 0;
-        }
-    }  
-}
+void colisao_meteoro_bala(No_projetil *lista_projetil, No_meteoro *lista_meteoro, int *pontuacao){
+    No_meteoro *aux_met = lista_meteoro;
+    No_projetil *aux_proj = lista_projetil;
+    while (aux_met != NULL){
+        while (aux_proj != NULL){
 
-void colisao_meteoro_bala(float **matriz_balas, Meteoro meteoros[MAX_AST], int *pontuacao, int bala_id){
-    for (int i = 0; i < MAX_AST; i++){
-        if (!meteoros[i].ativo){
-            continue;
-        }
-        
-        for (int j = 0; j < bala_id; j++){
-            if (CheckCollisionCircles((Vector2){meteoros[i].pos_x, meteoros[i].pos_y}, RAIO_ASTEROID_GRANDE, (Vector2){matriz_balas[j][0], matriz_balas[j][1]}, RAIO_BALA)){
-                meteoros[i].vidas -= 1;
-                matriz_balas[j][0] += -10000;
-                matriz_balas[j][1] += -10000;
+            if (CheckCollisionCircles((Vector2){aux_met->data.pos.x, aux_met->data.pos.y}, RAIO_ASTEROID_GRANDE, (Vector2){aux_proj->data.pos.x, aux_proj->data.pos.y}, RAIO_BALA)){
+                aux_met->data.vidas -= 1;
+                aux_proj->data.pos.x += -10000;
+                aux_proj->data.pos.y += -10000;
             };
-            if (meteoros[i].vidas <= 0){
+            if (aux_met->data.vidas <= 0){
                 *pontuacao += 10;
-                meteoros[i].ativo = false;
+                aux_met->data.ativo = false;
             }
+
+            aux_proj = aux_proj->prox_no;
         }
+        
+        aux_met = aux_met->prox_no;
     }
 }
 
-void desenhar_balas(float **matriz_balas, float bala_id, Texture2D spr_bala, Rectangle recorte_projetil, float vel_bala){
-for (int i = 0; i < bala_id; i++){
-        float angulo_rad = matriz_balas[i][2]*(PI/180);
-        matriz_balas[i][0] += cosf(angulo_rad)*vel_bala;
-        matriz_balas[i][1] += sinf(angulo_rad)*vel_bala;
+void desenhar_balas(No_projetil *lista, Texture2D spr_bala, Rectangle recorte_projetil, float vel_bala){
 
-        Rectangle destino_projetil = {matriz_balas[i][0], matriz_balas[i][1], spr_bala.width*2.5, spr_bala.height*2.5};
+    No_projetil *aux = lista;
+    while (aux != NULL){
+
+        float angulo_rad = aux->data.angulo*(PI/180);
+        aux->data.pos.x += cosf(angulo_rad)*vel_bala;
+        aux->data.pos.y += sinf(angulo_rad)*vel_bala;
+
+        Rectangle destino_projetil = {aux->data.pos.x, aux->data.pos.y, spr_bala.width*2.5, spr_bala.height*2.5};
         Vector2 origem_projetil = {destino_projetil.width/2, destino_projetil.height/2};
 
-        DrawTexturePro(spr_bala, recorte_projetil, destino_projetil, origem_projetil, matriz_balas[i][2], WHITE);
+        DrawTexturePro(spr_bala, recorte_projetil, destino_projetil, origem_projetil, aux->data.angulo, WHITE);
+
+        aux = aux->prox_no;
     }
 }
 
-void desenhar_meteoros(Meteoro meteoros[MAX_AST], Texture2D spr_meteoro, Rectangle recorte_meteoro){
-    for (int i = 0; i < MAX_AST; i++){
-        if (!meteoros[i].ativo){
-            continue;
-        }
-        
-        Rectangle destino_meteoro = {meteoros[i].pos_x, meteoros[i].pos_y, spr_meteoro.width*3.7, spr_meteoro.height*3.7};
+void desenhar_meteoros(No_meteoro *lista, Texture2D spr_meteoro, Rectangle recorte_meteoro){
+    
+    No_meteoro *aux = lista;
+    while (aux != NULL){
+        Rectangle destino_meteoro = {aux->data.pos.x, aux->data.pos.y, spr_meteoro.width*3.7, spr_meteoro.height*3.7};
         Vector2 origem_meteoro = {destino_meteoro.width/2, destino_meteoro.height/2};
-        DrawTexturePro(spr_meteoro, recorte_meteoro, destino_meteoro, origem_meteoro, meteoros[i].angulo, WHITE);
+        DrawTexturePro(spr_meteoro, recorte_meteoro, destino_meteoro, origem_meteoro, aux->data.angulo, WHITE);
+        aux = aux->prox_no;
     }
 }
 
@@ -387,25 +418,15 @@ int main(){
     int vel_frame = 6;
     int frame_count = 0;
 
-    float **matriz_balas = malloc(MAX_BALAS*sizeof(float *));
-
-    if (matriz_balas != NULL){
-            
-        for (int i = 0; i < MAX_BALAS; i++){
-            matriz_balas[i] = calloc(3, sizeof(float));
-        }
-    } else{
-        erro = true;
-    }
-
-    int bala_id = 0;
+    No_projetil *lista_projetil = NULL;
     float vel_bala = 8;
-    int tamanho_matriz = 50;
 
     // alocando os meteoros
-
-    Meteoro meteoros[MAX_AST];
-    alocar_meteoros(meteoros);
+    /*Meteoro meteoros[MAX_AST];
+    alocar_meteoros(meteoros);*/
+    
+    No_meteoro *lista_meteoro = NULL;
+    lista_meteoro = alocar_meteoros(lista_meteoro);
 
     Jogador jogador_n1 = {0};
     int quantidade_jogadores = 0;
@@ -444,9 +465,9 @@ int main(){
         pos_x_nave_atual = pos_x_nave; pos_y_nave_atual = pos_y_nave; 
 
         movimento_nave(&pos_x_nave, &pos_y_nave, velocidade_nave, &angulo, vel_angulo_nave);
-        atirar(&matriz_balas, &bala_id, pos_x_nave, pos_y_nave, angulo, &tamanho_matriz, &erro);
-        movimento_meteoro(meteoros);
-        colisao_meteoro_bala(matriz_balas, meteoros, &jogador_n1.pontuacao, bala_id);
+        lista_projetil = atirar(lista_projetil, pos_x_nave, pos_y_nave, angulo, &erro);
+        movimento_meteoro(lista_meteoro);
+        colisao_meteoro_bala(lista_projetil, lista_meteoro, &jogador_n1.pontuacao);
 
         Rectangle destino_nave_parada = {pos_x_nave, pos_y_nave, 3.7*recorte_nave.width, 3.7*recorte_nave.height};
         Vector2 origem_parada = {destino_nave_parada.width/2, destino_nave_parada.height/2};
@@ -470,8 +491,8 @@ int main(){
 
             ClearBackground((Color){2, 2, 12, 255});            
             desenhar_estrelas(spr_estrela_grande, spr_estrela_pequena, estrelas_grandes, estrelas_pequenas, recorte_estrela_grande, recorte_estrela_pequena);
-            desenhar_balas(matriz_balas, bala_id, spr_bala, recorte_projetil, vel_bala);
-            desenhar_meteoros(meteoros, spr_meteoro, recorte_meteoro);
+            desenhar_balas(lista_projetil, spr_bala, recorte_projetil, vel_bala);
+            desenhar_meteoros(lista_meteoro, spr_meteoro, recorte_meteoro);
             
             DrawTexturePro(imagem_atual, recorte_atual, destino_atual, origem_atual, angulo, WHITE);
             DrawText(TextFormat("%s", jogador_n1.nome), 30, 30, 35, WHITE);
@@ -504,11 +525,19 @@ int main(){
     UnloadTexture(spr_estrela_grande);
     UnloadTexture(spr_estrela_pequena);
     CloseWindow();
-    for (int i = 0; i < tamanho_matriz; i++){
-        free(matriz_balas[i]);
+    No_meteoro *aux = lista_meteoro;
+    while (aux != NULL) {
+        No_meteoro *removido = aux;
+        aux = aux->prox_no;
+        free(removido);
     }
-    free(matriz_balas);
-    
+    No_projetil *aux_proj = lista_projetil;
+    while (aux != NULL) {
+        No_projetil *removido = aux_proj;
+        aux = aux->prox_no;
+        free(removido);
+    }
+
 
     return 0;
 }
